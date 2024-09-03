@@ -1,0 +1,16 @@
+# Compiled files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Supporting files
+*.txt
+*.json
+
+# Private files
+*private*
+
+# MacOS Trash
+.DS_Store
