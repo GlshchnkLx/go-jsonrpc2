@@ -1,3 +1,8 @@
+# Build folders, binary output
+build/
+bin/
+dist/
+
 # Compiled files
 *.exe
 *.exe~
@@ -12,5 +17,22 @@
 # Private files
 *private*
 
-# MacOS Trash
+# Runtime and local files
+*.db
+*.log
+*.lock
+*.tmp
+
+# Windows specific
+$Recycle.Bin/
+desktop.ini
+Thumbs.db
+thumbs.db
+ehthumbs.db
+
+# Unix specific
+*~
+
+# MacOS specific
 .DS_Store
+._*

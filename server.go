@@ -68,7 +68,7 @@ func (handler *ServerHandlerUnit) Execute(requestUnit *RequestUnit) (responseUni
 		responseError = NewErrorMethodNotFound("handler function is nil")
 	}
 
-	if requestUnit.ID != nil && requestUnit.ID != false && requestUnit.ID != true {
+	if serverHasRequestID(requestUnit.ID) {
 		if responseResult != nil {
 			responseResultJson, err = json.Marshal(responseResult)
 			if err != nil {
@@ -131,24 +131,36 @@ func (server *Server) Execute(requestSlice RequestSlice) (responseSlice Response
 	responseSlice = ResponseSlice{}
 
 	for _, requestUnit = range requestSlice {
-		if requestUnit.JsonRPC == "2.0" {
-			handlerUnit, ok = server.handlerMap[requestUnit.Method]
-			if ok {
-				responseUnit = handlerUnit.Execute(requestUnit)
-			}
-		} else {
+		handlerUnit = ServerHandlerUnit{}
+		responseUnit = nil
+		ok = false
+
+		if requestUnit == nil {
 			responseSlice = append(responseSlice, &ResponseUnit{JsonRPC: "2.0", Error: NewErrorInvalidRequest(nil)})
+			continue
 		}
 
-		if requestUnit.ID != nil && requestUnit.ID != false && requestUnit.ID != true {
-			if ok {
-				if responseUnit != nil {
-					responseSlice = append(responseSlice, responseUnit)
-				} else {
-					responseSlice = append(responseSlice, &ResponseUnit{JsonRPC: "2.0", ID: requestUnit.ID, Error: NewErrorInternalError("response is nil")})
-				}
-			} else {
+		if requestUnit.JsonRPC != "2.0" {
+			responseUnit = &ResponseUnit{JsonRPC: "2.0", Error: NewErrorInvalidRequest(nil)}
+			if serverHasRequestID(requestUnit.ID) {
+				responseUnit.ID = requestUnit.ID
+			}
+			responseSlice = append(responseSlice, responseUnit)
+			continue
+		}
+
+		handlerUnit, ok = server.handlerMap[requestUnit.Method]
+		if ok {
+			responseUnit = handlerUnit.Execute(requestUnit)
+		}
+
+		if serverHasRequestID(requestUnit.ID) {
+			if !ok {
 				responseSlice = append(responseSlice, &ResponseUnit{JsonRPC: "2.0", ID: requestUnit.ID, Error: NewErrorMethodNotFound(fmt.Sprintf(`handler "%s" not founded`, requestUnit.Method))})
+			} else if responseUnit != nil {
+				responseSlice = append(responseSlice, responseUnit)
+			} else {
+				responseSlice = append(responseSlice, &ResponseUnit{JsonRPC: "2.0", ID: requestUnit.ID, Error: NewErrorInternalError("response is nil")})
 			}
 		}
 	}
@@ -188,6 +200,17 @@ func (server *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 func NewServer() *Server {
 	return &Server{
 		handlerMap: map[string]ServerHandlerUnit{},
+	}
+}
+
+func serverHasRequestID(id interface{}) bool {
+	switch id.(type) {
+	case nil:
+		return false
+	case bool:
+		return false
+	default:
+		return true
 	}
 }
 
